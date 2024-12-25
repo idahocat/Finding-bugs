@@ -1,41 +1,48 @@
-name: Find bug
+name: pw test
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
-  schedule:
-    - cron: "0 0 * * *"
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
 jobs:
   test:
-    timeout-minutes: 60
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: lts/*
-      - run: npm install
-      - run: npx playwright install --with-deps
-      - name: run PW tests
-        run: npm run test
-      - name: save allure-results
-        uses: actions/upload-artifact@v4
-        if: always()
-        continue-on-error: true
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Install Playwright browsers
+        run: npx playwright install  
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v3
         with:
           name: allure-results
           path: allure-results
-          retention-days: 10
-      - name: get allure-results history
-        uses: actions/checkout@v4
+          retention-days: 1
+
+      - name: Get Allure history
+        uses: actions/checkout@v3
         if: always()
         continue-on-error: true
         with:
           ref: gh-pages
           path: gh-pages
-      - name: generate allure-report
+
+      - name: Generate Allure report
         uses: simple-elf/allure-report-action@master
         if: always()
         id: allure-report
@@ -44,11 +51,12 @@ jobs:
           gh_pages: gh-pages
           allure_report: allure-report
           allure_history: allure-history
-          keep_reports: 10
-      - name: create report
+          keep_reports: 1
+
+      - name: Deploy report to GitHub Pages
         if: always()
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
           publish_dir: allure-history
+          publish_branch: gh-pages
